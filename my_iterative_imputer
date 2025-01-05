@@ -1,0 +1,37 @@
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+dfs =[]
+def my_iterative_imputer(dataframe, num_iterations,threshhold=0):
+    df = dataframe.copy()
+    original_df = dataframe.copy()
+    df = df.fillna(df.mean())
+
+    for iteration in range(num_iterations):
+        previous_df = df.copy()
+        for column in dataframe.columns:
+            if dataframe[column].isnull().any():  #check null column
+                X = df.drop(columns=[column])
+                y = dataframe[column]
+
+                not_missing = ~y.isnull()
+                X_train = X[not_missing]
+                y_train = y[not_missing]
+
+                missing = y.isnull()
+                X_missing = X[missing]
+
+                model = LinearRegression()
+                model.fit(X_train, y_train)
+                y_pred = model.predict(X_missing)
+
+                df.loc[missing, column] = y_pred
+        dfs.append(df.copy())
+        difference=previous_df-df
+        print("Difference", difference)
+
+        if ((difference <= threshhold) & (difference >= 0)).all().all():
+            print(f"Converged after {iteration + 1} iterations.")
+            break
+
+    return df
